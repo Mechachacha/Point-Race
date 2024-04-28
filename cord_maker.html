@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horse Racing Betting</title>
+<style>
+.checkbox-group {
+  float: left;
+  margin-right: 20px;
+}
+</style>
+</head>
+<body>
+
+<h2>1.賭ける形式を選択してください</h2>
+<select id="betTypeSelect" onchange="toggleHorseSelection()">
+  <option value="notSelected">未選択</option>
+  <option value="win">単勝</option>
+  <option value="place">複勝</option>
+  <option value="winPlace">単複</option>
+  <option value="quinella">馬連</option>
+  <option value="exacta">馬単</option>
+  <option value="quinellaPlace">ワイド</option>
+  <option value="trio">三連複</option>
+  <option value="trifecta">三連単</option>
+  <option value="bracketQuinella">枠連</option>
+</select>
+
+<!-- 追加: BOX買い選択用チェックボックス -->
+<input type="checkbox" id="boxBetCheckbox" onchange="toggleBoxBet()">
+<label for="boxBetCheckbox">BOX買い</label>
+
+<h2>2.馬番選択</h2>
+フォーメーションなどは実際に馬券に表示される形式に似せて書いていただけると嬉しいです。また、枠連を選択する場合も同じチェックボックスが表示されますが、通常通り実際の枠番を入力してください。<br>
+<!-- 変更: チェックボックス群 -->
+<div id="horseCheckboxes"></div>
+
+<div style="clear: both;"></div>
+
+<h2>3.コードを生成してください</h2>
+『SelectedHorse』の中に上のチェックボックスと同じ数字が入力されていること、<br>
+同じ項目内で数字の重複がないことを確認してください<br>
+<button onclick="placeBet()">コード生成</button>
+
+<p id="displayResult"></p>
+<p id="copyResult" style="display: none;"></p>
+
+<h2>4.コードをコピーして、フォームにて送信してください</h2>
+<button onclick="copyResults()">コードをコピー</button>
+
+<script>
+// 出走頭数の指定
+var numberOfHorses = 18;
+
+var horses = [];
+for (var i = 1; i <= numberOfHorses; i++) {
+  horses.push(i);
+}
+
+var selectedHorses1 = [];
+var selectedHorses2 = [];
+var selectedHorses3 = [];
+
+function populateHorseCheckboxes() {
+  var horseCheckboxes = document.getElementById("horseCheckboxes");
+  horseCheckboxes.innerHTML = "";
+  for (var i = 0; i < horses.length; i++) {
+    var checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = horses[i];
+    checkbox.id = "horseCheckbox" + (i + 1);
+    var label = document.createElement("label");
+    label.htmlFor = "horseCheckbox" + (i + 1);
+    label.appendChild(document.createTextNode(horses[i])); // 馬の番号を表示
+    horseCheckboxes.appendChild(checkbox);
+    horseCheckboxes.appendChild(label);
+    horseCheckboxes.appendChild(document.createElement("br"));
+  }
+}
+
+populateHorseCheckboxes();
+
+function toggleHorseSelection() {
+  var selectedBetType = document.getElementById("betTypeSelect").value;
+  var horseCheckboxes = document.getElementById("horseCheckboxes");
+  horseCheckboxes.style.display = "none";
+  
+  if(selectedBetType === "win" || selectedBetType === "place" || selectedBetType === "winPlace") {
+    populateSingleCheckboxGroup();
+  } else if(selectedBetType === "quinella" || selectedBetType === "exacta" || selectedBetType === "quinellaPlace" || selectedBetType === "bracketQuinella") {
+    populateDoubleCheckboxGroups();
+  } else if(selectedBetType === "trifecta" || selectedBetType === "trio") {
+    populateTripleCheckboxGroups();
+  }
+}
+
+function toggleBoxBet() {
+  var boxBetCheckbox = document.getElementById("boxBetCheckbox");
+  var horseCheckboxes = document.getElementById("horseCheckboxes");
+  
+  if(boxBetCheckbox.checked) {
+    populateSingleCheckboxGroup();
+  } else {
+    toggleHorseSelection();
+  }
+}
+
+function populateSingleCheckboxGroup() {
+  var horseCheckboxes = document.getElementById("horseCheckboxes");
+  horseCheckboxes.innerHTML = "";
+  for (var i = 0; i < horses.length; i++) {
+    var checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = horses[i];
+    checkbox.id = "horseCheckbox" + (i + 1);
+    var label = document.createElement("label");
+    label.htmlFor = "horseCheckbox" + (i + 1);
+    label.appendChild(document.createTextNode(horses[i])); // 馬の番号を表示
+    horseCheckboxes.appendChild(checkbox);
+    horseCheckboxes.appendChild(label);
+    horseCheckboxes.appendChild(document.createElement("br"));
+
+    // 選択された馬をselectedHorses1に追加
+    checkbox.addEventListener('change', function() {
+      if (this.checked) {
+        selectedHorses1.push(parseInt(this.value));
+      } else {
+        var index = selectedHorses1.indexOf(parseInt(this.value));
+        if (index !== -1) {
+          selectedHorses1.splice(index, 1);
+        }
+      }
+    });
+  }
+  horseCheckboxes.style.display = "block";
+}
+
+function populateDoubleCheckboxGroups() {
+  var horseCheckboxes = document.getElementById("horseCheckboxes");
+  horseCheckboxes.innerHTML = "";
+  
+  var checkboxGroup1 = document.createElement("div");
+  checkboxGroup1.className = "checkbox-group group1";
+  
+  var checkboxGroup2 = document.createElement("div");
+  checkboxGroup2.className = "checkbox-group group2";
+  
+  for (var j = 0; j < horses.length; j++) {
+    var checkbox1 = document.createElement("input");
+    var checkbox2 = document.createElement("input");
+    checkbox1.type = checkbox2.type = "checkbox";
+    checkbox1.value = checkbox2.value = horses[j];
+    checkbox1.id = "horseCheckbox1-" + (j + 1);
+    checkbox2.id = "horseCheckbox2-" + (j + 1);
+    var label1 = document.createElement("label");
+    var label2 = document.createElement("label");
+    label1.htmlFor = "horseCheckbox1-" + (j + 1);
+    label2.htmlFor = "horseCheckbox2-" + (j + 1);
+    label1.appendChild(document.createTextNode(horses[j])); // 馬の番号を表示
+    label2.appendChild(document.createTextNode(horses[j])); // 馬の番号を表示
+    checkboxGroup1.appendChild(checkbox1);
+    checkboxGroup1.appendChild(label1);
+    checkboxGroup1.appendChild(document.createElement("br"));
+    checkboxGroup2.appendChild(checkbox2);
+    checkboxGroup2.appendChild(label2);
+    checkboxGroup2.appendChild(document.createElement("br"));
+  }
+  horseCheckboxes.appendChild(checkboxGroup1);
+  horseCheckboxes.appendChild(checkboxGroup2);
+  horseCheckboxes.style.display = "block";
+}
+
+function populateTripleCheckboxGroups() {
+  var horseCheckboxes = document.getElementById("horseCheckboxes");
+  horseCheckboxes.innerHTML = "";
+  
+  var checkboxGroup1 = document.createElement("div");
+  checkboxGroup1.className = "checkbox-group group1";
+  
+  var checkboxGroup2 = document.createElement("div");
+  checkboxGroup2.className = "checkbox-group group2";
+  
+  var checkboxGroup3 = document.createElement("div");
+  checkboxGroup3.className = "checkbox-group group3";
+  
+  for (var j = 0; j < horses.length; j++) {
+    var checkbox1 = document.createElement("input");
+    var checkbox2 = document.createElement("input");
+    var checkbox3 = document.createElement("input");
+    checkbox1.type = checkbox2.type = checkbox3.type = "checkbox";
+    checkbox1.value = checkbox2.value = checkbox3.value = horses[j];
+    checkbox1.id = "horseCheckbox1-" + (j + 1);
+    checkbox2.id = "horseCheckbox2-" + (j + 1);
+    checkbox3.id = "horseCheckbox3-" + (j + 1);
+    var label1 = document.createElement("label");
+    var label2 = document.createElement("label");
+    var label3 = document.createElement("label");
+    label1.htmlFor = "horseCheckbox1-" + (j + 1);
+    label2.htmlFor = "horseCheckbox2-" + (j + 1);
+    label3.htmlFor = "horseCheckbox3-" + (j + 1);
+    label1.appendChild(document.createTextNode(horses[j])); // 馬の番号を表示
+    label2.appendChild(document.createTextNode(horses[j])); // 馬の番号を表示
+    label3.appendChild(document.createTextNode(horses[j])); // 馬の番号を表示
+    checkboxGroup1.appendChild(checkbox1);
+    checkboxGroup1.appendChild(label1);
+    checkboxGroup1.appendChild(document.createElement("br"));
+    checkboxGroup2.appendChild(checkbox2);
+    checkboxGroup2.appendChild(label2);
+    checkboxGroup2.appendChild(document.createElement("br"));
+    checkboxGroup3.appendChild(checkbox3);
+    checkboxGroup3.appendChild(label3);
+    checkboxGroup3.appendChild(document.createElement("br"));
+  }
+  horseCheckboxes.appendChild(checkboxGroup1);
+  horseCheckboxes.appendChild(checkboxGroup2);
+  horseCheckboxes.appendChild(checkboxGroup3);
+  horseCheckboxes.style.display = "block";
+}
+
+function getSelectedHorses() {
+  var selectedHorses = [];
+  var horseCheckboxes = document.getElementById("horseCheckboxes");
+  
+  var checkboxGroup1 = document.querySelector(".group1");
+  var checkboxGroup2 = document.querySelector(".group2");
+  var checkboxGroup3 = document.querySelector(".group3");
+
+  var checkboxes1 = checkboxGroup1 ? checkboxGroup1.querySelectorAll("input[type='checkbox']") : [];
+  var checkboxes2 = checkboxGroup2 ? checkboxGroup2.querySelectorAll("input[type='checkbox']") : [];
+  var checkboxes3 = checkboxGroup3 ? checkboxGroup3.querySelectorAll("input[type='checkbox']") : [];
+
+  
+  for(var i = 0; i < checkboxes1.length; i++) {
+    if(checkboxes1[i].checked) {
+      selectedHorses1.push(parseInt(checkboxes1[i].value));
+      selectedHorses.push(parseInt(checkboxes1[i].value));
+    }
+  }
+  
+  for(var i = 0; i < checkboxes2.length; i++) {
+    if(checkboxes2[i].checked) {
+      selectedHorses2.push(parseInt(checkboxes2[i].value));
+      selectedHorses.push(parseInt(checkboxes2[i].value));
+    }
+  }
+  
+  for(var i = 0; i < checkboxes3.length; i++) {
+    if(checkboxes3[i].checked) {
+      selectedHorses3.push(parseInt(checkboxes3[i].value));
+      selectedHorses.push(parseInt(checkboxes3[i].value));
+    }
+  }
+  
+  return selectedHorses;
+}
+
+function placeBet() {
+  var selectedBetType = document.getElementById("betTypeSelect").value;
+
+  // 選択された馬の配列を取得
+  var selectedHorses = getSelectedHorses();
+
+  // 選択された馬の数を取得
+  var numSelectedHorses1 = selectedHorses1.length;
+  var numSelectedHorses2 = selectedHorses2.length;
+  var numSelectedHorses3 = selectedHorses3.length;
+
+  // 組み合わせの数を計算
+  //var combination = calculateCombinations(selectedBetType, numSelectedHorses1, numSelectedHorses2, numSelectedHorses3);
+
+
+  /*// 選択された馬の数が賭ける形式に応じて適切な配列を参照し、数字が不足している場合にエラーを出す
+  if (selectedBetType === "notSelected") {
+    document.getElementById("displayResult").innerText = "エラー：賭ける形式が選択されていません。";
+  } else if ((selectedBetType === "win" || selectedBetType === "place" || selectedBetType === "winPlace") && numSelectedHorses1 < 1) {
+    document.getElementById("displayResult").innerText = "エラー：馬が選択されていません。";
+  } else if ((selectedBetType === "quinella" || selectedBetType === "exacta" || selectedBetType === "quinellaPlace") && numSelectedHorses2 < 1) {
+    document.getElementById("displayResult").innerText = "エラー：馬が2頭選択されていません。";
+  } else if ((selectedBetType === "trifecta" || selectedBetType === "trio") && numSelectedHorses3 < 1) {
+    document.getElementById("displayResult").innerText = "エラー：馬が3頭選択されていません。";
+  } else {*/
+    // 選択された形式と馬を表示
+    var betDescription = "コードが生成されました。";
+    document.getElementById("displayResult").innerText = betDescription;
+    document.getElementById("copyResult").innerText = selectedBetType;
+    if(boxBetCheckbox.checked){
+      document.getElementById("copyResult").innerText += "box";
+    }
+    document.getElementById("copyResult").style.display = "block";
+    sessionStorage.setItem("betResults", betDescription);
+    
+    // 選択された馬の配列を表示
+    document.getElementById("displayResult").innerText += "\n";
+    document.getElementById("displayResult").innerText += "SelectedHorse1: " + selectedHorses1.join("・") + "\n";
+    document.getElementById("displayResult").innerText += "SelectedHorse2: " + selectedHorses2.join("・") + "\n";
+    document.getElementById("displayResult").innerText += "SelectedHorse3: " + selectedHorses3.join("・") + "\n";
+    
+
+    //コードを出力
+    document.getElementById("copyResult").innerText += "," + selectedHorses1.join("・") + "," + selectedHorses2.join("・") + "," + selectedHorses3.join("・");
+    
+    // 前回の選択結果をリセット
+    selectedHorses1 = [];
+    selectedHorses2 = [];
+    selectedHorses3 = [];
+  /*}*/
+}
+
+// 組み合わせの数を計算する関数
+function numCombinations(n, r) {
+  if (n < r) return 0;
+  var numerator = factorial(n);
+  var denominator = factorial(r) * factorial(n - r);
+  return numerator / denominator;
+}
+
+// 階乗を計算する関数
+function factorial(num) {
+  if (num === 0 || num === 1) return 1;
+  for (var i = num - 1; i >= 1; i--) {
+    num *= i;
+  }
+  return num;
+}
+
+
+function copyResults() {
+  var resultText = document.getElementById("copyResult").innerText;
+  var tempTextArea = document.createElement("textarea");
+  tempTextArea.value = resultText;
+  document.body.appendChild(tempTextArea);
+  tempTextArea.select();
+  document.execCommand("copy");
+  document.body.removeChild(tempTextArea);
+  alert("結果がコピーされました: " + resultText);
+}
+</script>
+
+</body>
+</html>
