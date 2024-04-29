@@ -21,7 +21,14 @@ function pairCheck(umaRange, umbRange, umcRange, betType) {
     ac += (umaValues[i] == true && umcValues[i] == true) ? 1 : 0;
     abc += (umaValues[i] == true && umbValues[i] == true && umcValues[i] == true) ? 1 : 0;
   }
-  
+  //枠連時の処理
+  for (var i = 0; i < 8; i++) {
+    if (umaValues[i] == true) { wa++; }
+    if (umbValues[i] == true) { wb++; }
+    if(umaValues[i] == umbValues[i]){ wk++; }
+    if(umaValues[i] == umbValues[i]){ wab++; }
+  }
+
   // その他の計算
   oa = aa - ab - ac + abc;
   ob = bb - ab - bc + abc;
@@ -52,8 +59,9 @@ function pairCheck(umaRange, umbRange, umcRange, betType) {
       return aa*2;
     case "quinella":
     case "quinellaPlace":
-    case "bracketQuinella":
       return umaren;
+    case "bracketQuinella":
+      return wakuren;
     case "exacta":
       return umatan;
     case "trio":
@@ -113,7 +121,7 @@ function allpairs(arrayrange1, arrayrange2, arrayrange3,betType) {
                 }
             }
         }
-    } else if (betType === "quinella" || betType === "quinellaPlace" || betType === "bracketQuinella") {
+    } else if (betType === "quinella" || betType === "quinellaPlace") {
         for (let i = 0; i < array1.length; i++) {
             for (let j = 0; j < array2.length; j++) {
                 if (array1[i] !== array2[j]) { // M ≠ N の場合のみ処理する
@@ -125,6 +133,20 @@ function allpairs(arrayrange1, arrayrange2, arrayrange3,betType) {
                         combinationSet.add(combination);
                     }
                 }
+            }
+        }
+    } else if (betType === "bracketQuinella") {
+        for (let i = 0; i < array1.length; i++) {
+            for (let j = 0; j < array2.length; j++) {
+                
+                    const firstNumber = Math.min(array1[i], array2[j]);
+                    const secondNumber = Math.max(array1[i], array2[j]);
+                    const combination = firstNumber + "-" + secondNumber;
+                    if (!combinationSet.has(combination)) {
+                        combinations.push(combination);
+                        combinationSet.add(combination);
+                    }
+                
             }
         }
     } else if (betType === "quinellaPlacebox" || betType === "quinellabox" || betType === "bracketQuinellabox") {
